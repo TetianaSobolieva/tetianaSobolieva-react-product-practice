@@ -1,248 +1,290 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
-import React from 'react';
+import React, { useState } from 'react';
+import classNames from 'classnames';
 import './App.scss';
 
-// import usersFromServer from './api/users';
-// import categoriesFromServer from './api/categories';
-// import productsFromServer from './api/products';
+import usersFromServer from './api/users';
+import categoriesFromServer from './api/categories';
+import productsFromServer from './api/products';
 
-// const products = productsFromServer.map((product) => {
-//   const category = null; // find by product.categoryId
-//   const user = null; // find by category.ownerId
+const getCategorie = categoryId => {
+  const foundCategory = categoriesFromServer.find(
+    category => category.id === categoryId,
+  );
 
-//   return null;
-// });
+  return foundCategory || null;
+};
 
-export const App = () => (
-  <div className="section">
-    <div className="container">
-      <h1 className="title">Product Categories</h1>
+const getUser = ownerId => {
+  const foundUser = usersFromServer.find(user => user.id === ownerId);
 
-      <div className="block">
-        <nav className="panel">
-          <p className="panel-heading">Filters</p>
+  return foundUser || null;
+};
 
-          <p className="panel-tabs has-text-weight-bold">
-            <a
-              data-cy="FilterAllUsers"
-              href="#/"
-            >
-              All
-            </a>
+const fullProductsList = productsFromServer
+  .map(product => ({
+    ...product,
+    category: getCategorie(product.categoryId),
+  }))
+  .map(product => ({
+    ...product,
+    user: product.category ? getUser(product.category.ownerId) : null,
+  }));
 
-            <a
-              data-cy="FilterUser"
-              href="#/"
-            >
-              User 1
-            </a>
+export const App = () => {
+  // console.log(fullProductsList);
 
-            <a
-              data-cy="FilterUser"
-              href="#/"
-              className="is-active"
-            >
-              User 2
-            </a>
+  const [userToFilter, setUserToFilter] = useState('');
+  const [query, setQuery] = useState('');
+  const [categoriesToFilter, setCategoriesToFilter] = useState([]);
 
-            <a
-              data-cy="FilterUser"
-              href="#/"
-            >
-              User 3
-            </a>
-          </p>
+  const products = fullProductsList
+    .filter(product => {
+      if (userToFilter === '') {
+        return product;
+      }
 
-          <div className="panel-block">
-            <p className="control has-icons-left has-icons-right">
-              <input
-                data-cy="SearchField"
-                type="text"
-                className="input"
-                placeholder="Search"
-                value="qwe"
-              />
+      return product.user?.name === userToFilter;
+    })
+    .filter(product => {
+      const lowerCasedName = product.name.toLowerCase();
+      const lowerCasedQuery = query.toLowerCase();
 
-              <span className="icon is-left">
-                <i className="fas fa-search" aria-hidden="true" />
-              </span>
+      return lowerCasedName.includes(lowerCasedQuery);
+    })
+    .filter(product => {
+      if (categoriesToFilter.length === 0) {
+        return product;
+      }
 
-              <span className="icon is-right">
-                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                <button
-                  data-cy="ClearButton"
-                  type="button"
-                  className="delete"
-                />
-              </span>
+      if (product.category) {
+        return categoriesToFilter.includes(product.category.title);
+      }
+
+      return product;
+    });
+
+  const handleInput = event => {
+    setQuery(event.target.value);
+  };
+
+  const clearInput = () => setQuery('');
+
+  const resetFilters = () => {
+    setUserToFilter('');
+    clearInput();
+    setCategoriesToFilter([]);
+  };
+
+  return (
+    <div className="section">
+      <div className="container">
+        <h1 className="title">Product Categories</h1>
+
+        <div className="block">
+          <nav className="panel">
+            <p className="panel-heading">Filters</p>
+
+            <p className="panel-tabs has-text-weight-bold">
+              <a
+                data-cy="FilterAllUsers"
+                href="#/"
+                className={classNames({
+                  'is-active': userToFilter === '',
+                })}
+                onClick={e => {
+                  e.preventDefault();
+                  setUserToFilter('');
+                }}
+              >
+                All
+              </a>
+
+              {usersFromServer.map(user => (
+                <a
+                  data-cy="FilterUser"
+                  href="#/"
+                  className={classNames({
+                    'is-active': userToFilter === user.name,
+                  })}
+                  key={user.id}
+                  onClick={e => {
+                    e.preventDefault();
+                    setUserToFilter(user.name);
+                  }}
+                >
+                  {user.name}
+                </a>
+              ))}
             </p>
-          </div>
 
-          <div className="panel-block is-flex-wrap-wrap">
-            <a
-              href="#/"
-              data-cy="AllCategories"
-              className="button is-success mr-6 is-outlined"
-            >
-              All
-            </a>
+            <div className="panel-block">
+              <p className="control has-icons-left has-icons-right">
+                <input
+                  data-cy="SearchField"
+                  type="text"
+                  className="input"
+                  placeholder="Search"
+                  // value="qwe"
+                  value={query}
+                  onChange={handleInput}
+                />
 
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1 is-info"
-              href="#/"
-            >
-              Category 1
-            </a>
-
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1"
-              href="#/"
-            >
-              Category 2
-            </a>
-
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1 is-info"
-              href="#/"
-            >
-              Category 3
-            </a>
-            <a
-              data-cy="Category"
-              className="button mr-2 my-1"
-              href="#/"
-            >
-              Category 4
-            </a>
-          </div>
-
-          <div className="panel-block">
-            <a
-              data-cy="ResetAllButton"
-              href="#/"
-              className="button is-link is-outlined is-fullwidth"
-            >
-              Reset all filters
-            </a>
-          </div>
-        </nav>
-      </div>
-
-      <div className="box table-container">
-        <p data-cy="NoMatchingMessage">
-          No products matching selected criteria
-        </p>
-
-        <table
-          data-cy="ProductTable"
-          className="table is-striped is-narrow is-fullwidth"
-        >
-          <thead>
-            <tr>
-              <th>
-                <span className="is-flex is-flex-wrap-nowrap">
-                  ID
-
-                  <a href="#/">
-                    <span className="icon">
-                      <i data-cy="SortIcon" className="fas fa-sort" />
-                    </span>
-                  </a>
+                <span className="icon is-left">
+                  <i className="fas fa-search" aria-hidden="true" />
                 </span>
-              </th>
 
-              <th>
-                <span className="is-flex is-flex-wrap-nowrap">
-                  Product
+                {query && (
+                  <span className="icon is-right">
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+                    <button
+                      data-cy="ClearButton"
+                      type="button"
+                      className="delete"
+                      onClick={clearInput}
+                    />
+                  </span>
+                )}
+              </p>
+            </div>
 
-                  <a href="#/">
-                    <span className="icon">
-                      <i data-cy="SortIcon" className="fas fa-sort-down" />
-                    </span>
-                  </a>
-                </span>
-              </th>
-
-              <th>
-                <span className="is-flex is-flex-wrap-nowrap">
-                  Category
-
-                  <a href="#/">
-                    <span className="icon">
-                      <i data-cy="SortIcon" className="fas fa-sort-up" />
-                    </span>
-                  </a>
-                </span>
-              </th>
-
-              <th>
-                <span className="is-flex is-flex-wrap-nowrap">
-                  User
-
-                  <a href="#/">
-                    <span className="icon">
-                      <i data-cy="SortIcon" className="fas fa-sort" />
-                    </span>
-                  </a>
-                </span>
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr data-cy="Product">
-              <td className="has-text-weight-bold" data-cy="ProductId">
-                1
-              </td>
-
-              <td data-cy="ProductName">Milk</td>
-              <td data-cy="ProductCategory">🍺 - Drinks</td>
-
-              <td
-                data-cy="ProductUser"
-                className="has-text-link"
+            <div className="panel-block is-flex-wrap-wrap">
+              <a
+                href="#/"
+                data-cy="AllCategories"
+                className={classNames('button is-success mr-6', {
+                  'is-outlined': categoriesToFilter.length > 0,
+                })}
+                onClick={event => {
+                  event.preventDefault();
+                  setCategoriesToFilter([]);
+                }}
               >
-                Max
-              </td>
-            </tr>
+                All
+              </a>
 
-            <tr data-cy="Product">
-              <td className="has-text-weight-bold" data-cy="ProductId">
-                2
-              </td>
+              {categoriesFromServer.map(category => (
+                <a
+                  data-cy="Category"
+                  className={classNames('button mr-2 my-1', {
+                    'is-info': categoriesToFilter.includes(category.title),
+                  })}
+                  href="#/"
+                  key={category.id}
+                  onClick={event => {
+                    event.preventDefault();
+                    setCategoriesToFilter(currCategories => {
+                      const { title } = category;
 
-              <td data-cy="ProductName">Bread</td>
-              <td data-cy="ProductCategory">🍞 - Grocery</td>
+                      if (currCategories.includes(title)) {
+                        // eslint-disable-next-line max-len
+                        return currCategories.filter(
+                          currCategory => currCategory.title !== category.title,
+                        );
+                      }
 
-              <td
-                data-cy="ProductUser"
-                className="has-text-danger"
+                      return [...currCategories, title];
+                    });
+                  }}
+                >
+                  {category.title}
+                </a>
+              ))}
+            </div>
+
+            <div className="panel-block">
+              <a
+                data-cy="ResetAllButton"
+                href="#/"
+                className="button is-link is-outlined is-fullwidth"
+                onClick={resetFilters}
               >
-                Anna
-              </td>
-            </tr>
+                Reset all filters
+              </a>
+            </div>
+          </nav>
+        </div>
 
-            <tr data-cy="Product">
-              <td className="has-text-weight-bold" data-cy="ProductId">
-                3
-              </td>
+        <div className="box table-container">
+          {!products.length ? (
+            <p data-cy="NoMatchingMessage">
+              No products matching selected criteria
+            </p>
+          ) : (
+            <table
+              data-cy="ProductTable"
+              className="table is-striped is-narrow is-fullwidth"
+            >
+              <thead>
+                <tr>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      ID
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      Product
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort-down" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      Category
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort-up" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
+                  <th>
+                    <span className="is-flex is-flex-wrap-nowrap">
+                      User
+                      <a href="#/">
+                        <span className="icon">
+                          <i data-cy="SortIcon" className="fas fa-sort" />
+                        </span>
+                      </a>
+                    </span>
+                  </th>
+                </tr>
+              </thead>
 
-              <td data-cy="ProductName">iPhone</td>
-              <td data-cy="ProductCategory">💻 - Electronics</td>
+              <tbody>
+                {products.map(product => (
+                  <tr data-cy="Product" key={product.id}>
+                    <td className="has-text-weight-bold" data-cy="ProductId">
+                      {product.id}
+                    </td>
 
-              <td
-                data-cy="ProductUser"
-                className="has-text-link"
-              >
-                Roma
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                    <td data-cy="ProductName">{product.name}</td>
+                    <td data-cy="ProductCategory">{`${product.category.icon} - ${product.category.title}`}</td>
+                    <td
+                      data-cy="ProductUser"
+                      className={classNames({
+                        'has-text-link': product.user?.sex === 'm',
+                        'has-text-danger': product.user?.sex === 'f',
+                      })}
+                    >
+                      {product.user.name}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
